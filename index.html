@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV 表格編輯器</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+        }
+        
+        .table thead th {
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fa;
+            z-index: 10;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .sortable-ghost {
+            opacity: 0.4;
+        }
+        
+        .drag-handle {
+            cursor: move;
+            color: #6c757d;
+        }
+        
+        .drag-handle:hover {
+            color: #495057;
+        }
+        
+        .delete-btn {
+            cursor: pointer;
+            color: #dc3545;
+        }
+        
+        .delete-btn:hover {
+            color: #c82333;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        input[type="text"], input[type="date"], textarea {
+            border: none;
+            background: transparent;
+            width: 100%;
+            padding: 0.25rem;
+        }
+        
+        input[type="text"]:focus, input[type="date"]:focus, textarea:focus {
+            outline: 1px solid #0d6efd;
+            background-color: white;
+            border-radius: 0.25rem;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container my-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">CSV 表格編輯器</h1>
+                
+                <!-- 檔案上傳區域 -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">載入 CSV 檔案</h5>
+                        <div class="mb-3">
+                            <input type="file" class="form-control" id="csvFile" accept=".csv" />
+                        </div>
+                        <small class="text-muted">請選擇您的 data.csv 檔案，或開始使用空白表格</small>
+                    </div>
+                </div>
+                
+                <!-- 表格容器 -->
+                <div class="table-container mb-3">
+                    <table class="table table-bordered table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th width="50"></th>
+                                <th width="150">日期</th>
+                                <th width="200">項目</th>
+                                <th width="300">項目描述</th>
+                                <th width="200">備註</th>
+                                <th width="50">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- 表格內容將由 JavaScript 動態產生 -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 操作按鈕 -->
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary" id="addRowBtn">
+                        <i class="fas fa-plus"></i> 新增一列
+                    </button>
+                    <button type="button" class="btn btn-success" id="saveBtn">
+                        <i class="fas fa-download"></i> 儲存 CSV
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="clearBtn">
+                        <i class="fas fa-trash"></i> 清空表格
+                    </button>
+                </div>
+                
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i> 
+                        提示：拖拉左側圖示可重新排序列，點擊刪除圖示可移除該列
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sortable;
+        
+        // 取得今天日期 (YYYY/MM/DD 格式)
+        function getTodayDate() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}/${month}/${day}`;
+        }
+        
+        // 轉換日期格式給 input[type="date"] 使用 (YYYY-MM-DD)
+        function formatDateForInput(dateStr) {
+            if (!dateStr) return getTodayDate().replace(/\//g, '-');
+            return dateStr.replace(/\//g, '-');
+        }
+        
+        // 轉換日期格式給輸出使用 (YYYY/MM/DD)
+        function formatDateForOutput(dateStr) {
+            if (!dateStr) return getTodayDate();
+            return dateStr.replace(/-/g, '/');
+        }
+        
+        // 初始化 SortableJS
+        function initSortable() {
+            const tableBody = document.getElementById('tableBody');
+            sortable = Sortable.create(tableBody, {
+                handle: '.drag-handle',
+                ghostClass: 'sortable-ghost',
+                animation: 150
+            });
+        }
+        
+        // 新增一列
+        function addRow(date = '', item = '', description = '', note = '') {
+            const tableBody = document.getElementById('tableBody');
+            const rowCount = tableBody.children.length;
+            const defaultDate = date || getTodayDate();
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="text-center">
+                    <i class="fas fa-grip-vertical drag-handle"></i>
+                </td>
+                <td>
+                    <input type="date" value="${formatDateForInput(defaultDate)}" class="form-control-plaintext">
+                </td>
+                <td>
+                    <input type="text" value="${item}" placeholder="請輸入項目" class="form-control-plaintext">
+                </td>
+                <td>
+                    <textarea placeholder="請輸入項目描述" class="form-control-plaintext">${description}</textarea>
+                </td>
+                <td>
+                    <input type="text" value="${note}" placeholder="請輸入備註" class="form-control-plaintext">
+                </td>
+                <td class="text-center">
+                    <i class="fas fa-trash delete-btn" onclick="deleteRow(this)"></i>
+                </td>
+            `;
+            
+            tableBody.appendChild(row);
+        }
+        
+        // 刪除列
+        function deleteRow(element) {
+            if (confirm('確定要刪除這一列嗎？')) {
+                element.closest('tr').remove();
+            }
+        }
+        
+        // 清空表格
+        function clearTable() {
+            if (confirm('確定要清空整個表格嗎？此操作無法復原。')) {
+                document.getElementById('tableBody').innerHTML = '';
+            }
+        }
+        
+        // 讀取 CSV 檔案
+        function loadCSV(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csv = e.target.result;
+                parseCSV(csv);
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+        
+        // 解析 CSV 內容
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = ''; // 清空現有內容
+            
+            lines.forEach((line, index) => {
+                // 簡單的 CSV 解析 (處理逗號分隔)
+                const columns = parseCSVLine(line);
+                
+                if (columns.length >= 4) {
+                    addRow(columns[0], columns[1], columns[2], columns[3]);
+                }
+            });
+            
+            // 如果沒有資料，至少新增一列
+            if (lines.length === 0 || lines[0].trim() === '') {
+                addRow();
+            }
+        }
+        
+        // 解析 CSV 行 (處理引號內的逗號)
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current.trim());
+            return result;
+        }
+        
+        // 生成 CSV 內容
+        function generateCSV() {
+            const rows = document.querySelectorAll('#tableBody tr');
+            let csvContent = '';
+            
+            rows.forEach(row => {
+                const inputs = row.querySelectorAll('input, textarea');
+                const values = [];
+                
+                // 取得日期 (轉換為 YYYY/MM/DD 格式)
+                values.push(formatDateForOutput(inputs[0].value));
+                
+                // 取得其他欄位
+                for (let i = 1; i < inputs.length; i++) {
+                    let value = inputs[i].value.replace(/"/g, '""'); // 處理引號
+                    if (value.includes(',') || value.includes('\n') || value.includes('"')) {
+                        value = `"${value}"`;
+                    }
+                    values.push(value);
+                }
+                
+                csvContent += values.join(',') + '\n';
+            });
+            
+            return csvContent;
+        }
+        
+        // 儲存 CSV 檔案
+        function saveCSV() {
+            const csvContent = generateCSV();
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'data.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+        
+        // 事件監聽器
+        document.addEventListener('DOMContentLoaded', function() {
+            initSortable();
+            
+            // 新增一列按鈕
+            document.getElementById('addRowBtn').addEventListener('click', function() {
+                addRow();
+            });
+            
+            // 儲存按鈕
+            document.getElementById('saveBtn').addEventListener('click', saveCSV);
+            
+            // 清空按鈕
+            document.getElementById('clearBtn').addEventListener('click', clearTable);
+            
+            // 檔案上傳
+            document.getElementById('csvFile').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    loadCSV(file);
+                }
+            });
+            
+            // 初始化時新增一列空白資料
+            addRow();
+        });
+    </script>
+</body>
+</html>

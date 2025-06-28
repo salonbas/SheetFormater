@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Editor</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container my-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="mb-0">CSV Editor</h1>
+                </div>
+                
+                <!-- 路徑設定區域 -->
+                <div class="card mb-4" id="pathSetupCard">
+                    <div class="card-body">
+                        <h5 class="card-title">File Path Setup</h5>
+                        <div class="mb-3">
+                            <label for="csvFilePath" class="form-label">CSV File Path:</label>
+                            <input type="text" class="form-control" id="csvFilePath" placeholder="Enter CSV file path">
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-primary" id="openFileBtn">
+                                <i class="fas fa-folder-open"></i> Open File
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 檔案狀態顯示 -->
+                <div class="alert alert-info" id="fileStatus" style="display: none;">
+                    <i class="fas fa-info-circle"></i> 
+                    <span id="fileStatusText">Loading file...</span>
+                </div>
+                
+                <!-- 表格容器 -->
+                <div class="table-container mb-3" id="tableContainer" style="display: none;">
+                    <table class="table table-bordered table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th width="50"></th>
+                                <th width="150">Date</th>
+                                <th width="200">Item</th>
+                                <th width="300">Description</th>
+                                <th width="200">Note</th>
+                                <th width="50">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- 表格內容將由 JavaScript 動態產生 -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 操作按鈕 -->
+                <div class="d-flex gap-2" id="actionButtons" style="display: none;">
+                    <button type="button" class="btn btn-primary" id="addRowBtn">
+                        <i class="fas fa-plus"></i> Add Row
+                    </button>
+                    <button type="button" class="btn btn-success" id="saveBtn">
+                        <i class="fas fa-download"></i> Save CSV
+                    </button>
+                    <button type="button" class="btn btn-outline-success" id="saveAsBtn">
+                        <i class="fas fa-save"></i> Save As
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="clearBtn">
+                        <i class="fas fa-trash"></i> Clear Table
+                    </button>
+                </div>
+                
+                <div class="mt-3" id="helpText" style="display: none;">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i> 
+                        Tip: Drag the left icon to reorder rows, click delete icon to remove row
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html> 
